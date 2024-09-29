@@ -1,0 +1,101 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: antonserverless
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: shui-api
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: shui-api
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: eu-north-1
+  deploymentMethod: direct
+  iam: 
+    role: arn:aws:iam::529088279440:role/LambdaDynamoDBRole
+  httpApi: 
+    cors: true 
+
+functions:
+  GetNotes:
+    handler: functions/GetNotes/index.handler
+    events:
+      - httpApi:
+          path: /notes
+          method: get
+  GetNote:
+    handler: functions/GetNote/index.handler
+    events:
+      - httpApi:
+          path: /notes/{noteID}
+          method: get
+  AddUser:
+    handler: functions/AddUser/index.createUser
+    events:
+      - httpApi:
+          path: /user
+          method: post
+  GetUser:
+    handler: functions/GetUser/index.handler
+    events:
+      - httpApi:
+          path: /user/{username}
+          method: get
+  GetUsers:
+    handler: functions/GetUsers/index.handler
+    events:
+      - httpApi:
+          path: /users
+          method: get
+  PostNote:
+    handler: functions/PostNote/index.handler
+    events:
+      - httpApi:
+          path: /note
+          method: post
+  DeleteNote:
+    handler: functions/DeleteNote/index.handler
+    events:
+      - httpApi:
+          path: /notes/{noteID}
+          method: delete
+  UpdateNote:
+    handler: functions/UpdateNote/index.handler
+    events:
+      - httpApi:
+          path: /notes/{noteID}
+          method: put
+
+
+resources:
+  Resources:
+    NotesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: 'notes-db'
+        AttributeDefinitions:
+          - AttributeName: 'noteID'
+            AttributeType: 'S'
+        KeySchema:
+          - AttributeName: 'noteID'  
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: 'users-db'
+        AttributeDefinitions:
+          - AttributeName: 'userID' 
+            AttributeType: 'S'
+          - AttributeName: 'username' # username som attribut för GSI
+            AttributeType: 'S'
+        KeySchema:
+          - AttributeName: 'userID' 
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:  # Definiera GSI här
+          - IndexName: 'UsernameIndex'
+            KeySchema:
+              - AttributeName: 'username'  # Använd username som partition key
+                KeyType: HASH
+            Projection:
+              ProjectionType: 'ALL'  # Inkludera alla attribut i indexet
